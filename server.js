@@ -261,6 +261,7 @@ app.post('/api/operator/review', requireOperator, (req, res) => {
     db.setWon(claim.uuid, wonAt);
     const player = db.getPlayer(claim.uuid);
     const name = player ? player.name : 'A player';
+    db.logWinner(db.currentRound(), name, wonAt);   // permanent cross-round history
     io.to('player:' + claim.uuid).emit('result', { approved: true, pattern: claim.pattern, wonAt: wonAt });
     // The round is now over for this speaker — tell everyone and lock their boards.
     io.emit('roundover', { winner: name, at: wonAt, pattern: claim.pattern });
@@ -342,6 +343,7 @@ function publicState() {
     roundClosed: !roundOpen(),
     sentiment: db.roomSentiment(),
     winners: db.winners().map((w) => ({ name: w.name, wonAt: w.won_at })),
+    history: db.winnersLog().map((w) => ({ round: w.round, name: w.name, wonAt: w.won_at })),
     publicUrl,
     qr: qrDataUrl,
   };

@@ -26,19 +26,33 @@
     $('bn').style.width = b.negativePct + '%';
     // metrics
     $('m-players').textContent = s.players || 0;
-    var wins = s.winners || [];
-    $('m-winners').textContent = wins.length;
+    var hist = s.history || [];
+    $('m-winners').textContent = hist.length;   // total across the whole event
     $('m-pattern').textContent = PATTERN_LABEL[s.activePattern] || s.activePattern || '—';
-    // winners
+    // winners by round (persists across rounds)
     var host = $('winlist'); host.innerHTML = '';
-    if (!wins.length) { var n = document.createElement('span'); n.className = 'none'; n.textContent = 'First bingo puts a name up here…'; host.appendChild(n); }
-    else wins.forEach(function (w) { var el = document.createElement('span'); el.className = 'w'; el.textContent = w.name; host.appendChild(el); });
+    if (!hist.length) {
+      var n = document.createElement('span'); n.className = 'none'; n.textContent = 'First bingo puts a name up here…'; host.appendChild(n);
+    } else {
+      var byRound = {};
+      hist.forEach(function (w) { (byRound[w.round] = byRound[w.round] || []).push(w); });
+      Object.keys(byRound).map(Number).sort(function (a, b) { return a - b; }).forEach(function (rnd) {
+        var row = document.createElement('div'); row.className = 'rrow';
+        var lbl = document.createElement('span'); lbl.className = 'rlbl'; lbl.textContent = 'Round ' + rnd; row.appendChild(lbl);
+        byRound[rnd].forEach(function (w) {
+          var chip = document.createElement('span'); chip.className = 'w'; chip.textContent = w.name;
+          if (w.wonAt) chip.title = 'won at ' + new Date(w.wonAt).toLocaleTimeString();
+          row.appendChild(chip);
+        });
+        host.appendChild(row);
+      });
+    }
     // celebrate a brand-new winner (skip on first paint)
-    if (booted && wins.length > lastWinnerCount) {
-      var latest = wins[wins.length - 1];
+    if (booted && hist.length > lastWinnerCount) {
+      var latest = hist[hist.length - 1];
       celebrate(latest ? latest.name : '');
     }
-    lastWinnerCount = wins.length;
+    lastWinnerCount = hist.length;
     booted = true;
   }
 

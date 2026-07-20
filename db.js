@@ -60,6 +60,13 @@ function init(dir) {
       added_at INTEGER NOT NULL,
       UNIQUE(word, category)
     );
+    -- Permanent winners history across rounds (NOT cleared by newRound).
+    CREATE TABLE IF NOT EXISTS winners_log (
+      id     INTEGER PRIMARY KEY AUTOINCREMENT,
+      round  INTEGER NOT NULL,
+      name   TEXT NOT NULL,
+      won_at INTEGER NOT NULL
+    );
   `);
   // Migrations: a "round" ties a card to the current speaker/game.
   ensureColumn('cards', 'round', 'INTEGER NOT NULL DEFAULT 1');
@@ -198,6 +205,13 @@ function winners() {
                      JOIN players p ON p.uuid=g.uuid WHERE g.won_at IS NOT NULL
                      ORDER BY g.won_at`).all();
 }
+// Permanent, cross-round winners history.
+function logWinner(round, name, wonAt) {
+  db.prepare('INSERT INTO winners_log (round, name, won_at) VALUES (?,?,?)').run(round, name, wonAt);
+}
+function winnersLog() {
+  return db.prepare('SELECT round, name, won_at FROM winners_log ORDER BY round, won_at').all();
+}
 
 module.exports = {
   init, upsertPlayer, getPlayer, playerCount,
@@ -206,4 +220,5 @@ module.exports = {
   getMeta, setMeta, roomSentiment, winners,
   currentRound, newRound,
   addBuzzword, listBuzzwords, removeBuzzword,
+  logWinner, winnersLog,
 };
