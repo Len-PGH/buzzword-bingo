@@ -17,6 +17,7 @@ const QRCode = require('qrcode');
 const { Server } = require('socket.io');
 const db = require('./db');
 const bingo = require('./bingo');
+const { POSITIVE, NEGATIVE, NAMES } = require('./buzzwords');
 
 // ---- tiny .env loader (no dependency) -------------------------------------
 (function loadEnv() {
@@ -60,6 +61,16 @@ function keyOk(given) {
 }
 function activePattern() { return db.getMeta('activePattern', 'any_line'); }
 
+// Base word pools + any buzzwords the operator has added live.
+function mergedPools() {
+  const pos = POSITIVE.slice(), neg = NEGATIVE.slice(), nm = NAMES.slice();
+  for (const r of db.listBuzzwords()) {
+    const arr = r.category === 'positive' ? pos : r.category === 'negative' ? neg : r.category === 'name' ? nm : null;
+    if (arr && !arr.includes(r.word)) arr.push(r.word);
+  }
+  return { positive: pos, negative: neg, names: nm };
+}
+
 // The registered player's card for the CURRENT round — regenerated fresh (new
 // seed) whenever the operator advances to a new speaker, so winners play again.
 function cardFor(uuid) {
@@ -68,7 +79,7 @@ function cardFor(uuid) {
   const round = db.currentRound();
   let card = db.getCard(uuid);
   if (!card || card.round !== round) {
-    card = bingo.generateCard(uuid + ':r' + round);
+    card = bingo.generateCard(uuid + ':r' + round, mergedPools());
     db.saveCard(uuid, card, round);
     card = db.getCard(uuid);
   }
@@ -248,6 +259,25 @@ app.post('/api/operator/review', requireOperator, (req, res) => {
   broadcastOverview();
   res.json({ ok: true });
 });
+// Operator-managed buzzwords (added words apply to newly drawn cards / next round).
+app.get('/api/operator/buzzwords', requireOperator, (_req, res) => {
+  const p = mergedPools();
+  res.json({ custom: db.listBuzzwords(), counts: { positive: p.positive.length, negative: p.negative.length, names: p.names.length } });
+});
+app.post('/api/operator/buzzwords', requireOperator, (req, res) => {
+  const word = sanitizeText(req.body && req.body.word, 40);
+  const category = req.body && req.body.category;
+  if (!word) return res.status(400).json({ ok: false, error: 'Enter a word.' });
+  if (!['positive', 'negative', 'name'].includes(category)) return res.status(400).json({ ok: false, error: 'bad category' });
+  db.addBuzzword(word, category);
+  res.json({ ok: true });
+});
+app.post('/api/operator/buzzwords/remove', requireOperator, (req, res) => {
+  const id = Number(req.body && req.body.id);
+  if (Number.isInteger(id)) db.removeBuzzword(id);
+  res.json({ ok: true });
+});
+
 // Next speaker → fresh game: everyone (winners included) gets a new card.
 app.post('/api/operator/round', requireOperator, (_req, res) => {
   const r = db.newRound();

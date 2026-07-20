@@ -53,6 +53,13 @@ function init(dir) {
       key   TEXT PRIMARY KEY,
       value TEXT
     );
+    CREATE TABLE IF NOT EXISTS buzzwords (
+      id       INTEGER PRIMARY KEY AUTOINCREMENT,
+      word     TEXT NOT NULL,
+      category TEXT NOT NULL,               -- positive | negative | name
+      added_at INTEGER NOT NULL,
+      UNIQUE(word, category)
+    );
   `);
   // Migrations: a "round" ties a card to the current speaker/game.
   ensureColumn('cards', 'round', 'INTEGER NOT NULL DEFAULT 1');
@@ -179,6 +186,13 @@ function roomSentiment() {
     positivePct: total ? Math.round((pos / total) * 100) : 0,
     negativePct: total ? Math.round((neg / total) * 100) : 0 };
 }
+// ---- operator-added buzzwords ---------------------------------------------
+function addBuzzword(word, category) {
+  db.prepare('INSERT OR IGNORE INTO buzzwords (word, category, added_at) VALUES (?,?,?)').run(word, category, now());
+}
+function listBuzzwords() { return db.prepare('SELECT * FROM buzzwords ORDER BY category, added_at').all(); }
+function removeBuzzword(id) { db.prepare('DELETE FROM buzzwords WHERE id = ?').run(id); }
+
 function winners() {
   return db.prepare(`SELECT p.name, p.email, g.won_at FROM game_state g
                      JOIN players p ON p.uuid=g.uuid WHERE g.won_at IS NOT NULL
@@ -191,4 +205,5 @@ module.exports = {
   createClaim, getClaim, listClaims, reviewClaim,
   getMeta, setMeta, roomSentiment, winners,
   currentRound, newRound,
+  addBuzzword, listBuzzwords, removeBuzzword,
 };

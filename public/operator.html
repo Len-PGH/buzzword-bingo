@@ -50,6 +50,22 @@
       <button class="btn ghost" id="new-round">⏭ Next speaker — new round (fresh cards for everyone)</button>
     </div>
 
+    <div class="panel">
+      <h1 style="font-size:20px">Buzzwords</h1>
+      <p class="muted" style="margin:6px 0 12px">Add words that appear on <b>new</b> cards — add a few, then start a new round so everyone gets them. <span id="bw-counts"></span></p>
+      <div class="row">
+        <input id="bw-word" type="text" placeholder="new buzzword or AI name" style="flex:2;min-width:160px" />
+        <select id="bw-cat" style="flex:1;min-width:130px">
+          <option value="negative">🔴 Negative (hype)</option>
+          <option value="positive">🟢 Positive</option>
+          <option value="name">🔵 AI name-drop</option>
+        </select>
+        <button class="btn" id="bw-add" style="flex:1;min-width:90px">Add</button>
+      </div>
+      <div class="err" id="bw-err"></div>
+      <div id="bw-list" style="margin-top:12px"></div>
+    </div>
+
     <div class="panel qrbox">
       <div class="k" style="color:var(--muted)">Players join here</div>
       <img id="qr" alt="join QR" style="display:none" />

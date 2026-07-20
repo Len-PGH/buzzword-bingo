@@ -22,6 +22,7 @@
         $('gate').style.display = 'none';
         $('app').style.display = '';
         refreshClaims();
+        refreshBuzzwords();
       } else {
         $('gate-err').textContent = 'Wrong key.';
         $('gate').style.display = ''; $('app').style.display = 'none';
@@ -102,6 +103,40 @@
     if (!window.confirm('Start a new round for the next speaker? Everyone gets a fresh card and the board clears.')) return;
     op('/api/operator/round', {}).then(function () { refreshClaims(); });
   });
+
+  // ---- buzzwords ----
+  var CAT_COLOR = { positive: 'var(--pos)', negative: 'var(--neg)', name: 'var(--name)' };
+  var CAT_LABEL = { positive: 'positive', negative: 'negative', name: 'name' };
+  function refreshBuzzwords() {
+    op('/api/operator/buzzwords').then(function (r) {
+      if (!r.ok) return;
+      var c = r.j.counts || {};
+      $('bw-counts').textContent = 'Pools: ' + c.positive + ' positive · ' + c.negative + ' negative · ' + c.names + ' names.';
+      var host = $('bw-list'); host.innerHTML = '';
+      var custom = r.j.custom || [];
+      if (!custom.length) { var n = document.createElement('span'); n.className = 'muted'; n.textContent = 'No custom words yet — the built-in lists are in use.'; host.appendChild(n); return; }
+      custom.forEach(function (w) {
+        var chip = document.createElement('span');
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:8px;margin:0 8px 8px 0;padding:6px 12px;border-radius:999px;background:var(--panel2);border:1px solid var(--line)';
+        var dot = document.createElement('span'); dot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:' + (CAT_COLOR[w.category] || '#888');
+        var txt = document.createElement('span'); txt.textContent = w.word;
+        var x = document.createElement('button'); x.textContent = '×'; x.title = 'remove';
+        x.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0';
+        x.addEventListener('click', function () { op('/api/operator/buzzwords/remove', { id: w.id }).then(refreshBuzzwords); });
+        chip.appendChild(dot); chip.appendChild(txt); chip.appendChild(x); host.appendChild(chip);
+      });
+    });
+  }
+  $('bw-add').addEventListener('click', function () {
+    $('bw-err').textContent = '';
+    var word = $('bw-word').value.trim();
+    if (!word) { $('bw-err').textContent = 'Enter a word.'; return; }
+    op('/api/operator/buzzwords', { word: word, category: $('bw-cat').value }).then(function (r) {
+      if (!r.ok) { $('bw-err').textContent = (r.j && r.j.error) || 'Could not add.'; return; }
+      $('bw-word').value = ''; refreshBuzzwords();
+    });
+  });
+  $('bw-word').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('bw-add').click(); });
 
   // ---- realtime ----
   socket.on('overview', renderOverview);

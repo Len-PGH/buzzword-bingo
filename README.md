@@ -72,7 +72,9 @@ Each square carries a colored dot for its polarity (🟢 positive / 🔴 negativ
 
 Pick the winning pattern (applies to everyone live), watch the room's buzz, and
 **review each bingo claim** — you see the claimant's card, exactly which words
-they blotted, and the pattern they completed — then approve or reject.
+they blotted, and the pattern they completed — then approve or reject. You can
+also **add buzzwords live** (positive / negative / name-drop) and hit **Next
+speaker** to deal everyone a fresh card from the updated pool.
 
 ![Operator console](docs/screenshots/operator.png)
 
@@ -107,7 +109,9 @@ evaluate(card, marked, 'any_line').complete // true when a row/col/diag is fille
 sentiment(card, marked).positivePct         // live buzz of what they've blotted
 ```
 
-Edit the word pools in `buzzwords.js` — `POSITIVE`, `NEGATIVE`, `NAMES`.
+Edit the starting word pools in `buzzwords.js` — `POSITIVE`, `NEGATIVE`, `NAMES` —
+or add words on the fly from the operator panel (stored in the DB, merged into
+the pools when cards are drawn).
 
 ---
 
