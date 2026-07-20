@@ -300,11 +300,14 @@ app.post('/api/operator/speaker', requireOperator, (req, res) => {
 });
 
 // Next speaker → fresh game: everyone (winners included) gets a new card.
-app.post('/api/operator/round', requireOperator, (_req, res) => {
+// Optionally label the new round with the speaker in the same step.
+app.post('/api/operator/round', requireOperator, (req, res) => {
   const r = db.newRound();
+  const speaker = sanitizeText(req.body && req.body.speaker, 80);
+  if (speaker) db.setSpeaker(r, speaker);
   io.emit('round', { round: r });   // players refetch and get a fresh card
   broadcastOverview();
-  res.json({ ok: true, round: r });
+  res.json({ ok: true, round: r, speaker });
 });
 app.post('/api/operator/pattern', requireOperator, (req, res) => {
   const p = req.body && req.body.pattern;

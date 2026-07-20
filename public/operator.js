@@ -110,8 +110,10 @@
   });
   $('speaker').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('speaker-save').click(); });
   $('new-round').addEventListener('click', function () {
-    if (!window.confirm('Start a new round for the next speaker? Everyone gets a fresh card and the board clears.')) return;
-    op('/api/operator/round', {}).then(function () { refreshClaims(); });
+    // One step: name the next speaker AND start the fresh round. Cancel aborts.
+    var sp = window.prompt('Next speaker — name / topic for the new round?\n(Everyone gets a fresh card. Leave blank to skip the label.)');
+    if (sp === null) return; // cancelled
+    op('/api/operator/round', { speaker: sp.trim() }).then(function () { refreshClaims(); });
   });
 
   // ---- buzzwords ----
