@@ -44,6 +44,8 @@
     $('m-pp').textContent = s.positivePct + '%'; $('m-np').textContent = s.negativePct + '%';
     if (o.activePattern && $('pattern').value !== o.activePattern) $('pattern').value = o.activePattern;
     if ($('round-pill')) $('round-pill').textContent = 'Round ' + (o.round || 1) + (o.roundClosed ? ' · OVER — start next round' : '');
+    // keep the speaker box in sync unless the operator is typing in it
+    if ($('speaker') && document.activeElement !== $('speaker')) $('speaker').value = o.speaker || '';
     // QR / join link
     if (o.qr) { $('qr').src = o.qr; $('qr').style.display = ''; }
     $('url').textContent = o.publicUrl || 'no public URL yet (run behind the tunnel to get one)';
@@ -103,6 +105,10 @@
   $('pattern').addEventListener('change', function () {
     op('/api/operator/pattern', { pattern: this.value });
   });
+  $('speaker-save').addEventListener('click', function () {
+    op('/api/operator/speaker', { speaker: $('speaker').value.trim() });
+  });
+  $('speaker').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('speaker-save').click(); });
   $('new-round').addEventListener('click', function () {
     if (!window.confirm('Start a new round for the next speaker? Everyone gets a fresh card and the board clears.')) return;
     op('/api/operator/round', {}).then(function () { refreshClaims(); });

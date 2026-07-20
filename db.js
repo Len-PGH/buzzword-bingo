@@ -67,6 +67,11 @@ function init(dir) {
       name   TEXT NOT NULL,
       won_at INTEGER NOT NULL
     );
+    -- Speaker/topic label per round (persists across rounds).
+    CREATE TABLE IF NOT EXISTS round_speakers (
+      round   INTEGER PRIMARY KEY,
+      speaker TEXT
+    );
   `);
   // Migrations: a "round" ties a card to the current speaker/game.
   ensureColumn('cards', 'round', 'INTEGER NOT NULL DEFAULT 1');
@@ -212,6 +217,19 @@ function logWinner(round, name, wonAt) {
 function winnersLog() {
   return db.prepare('SELECT round, name, won_at FROM winners_log ORDER BY round, won_at').all();
 }
+// Per-round speaker label.
+function setSpeaker(round, speaker) {
+  db.prepare('INSERT INTO round_speakers (round, speaker) VALUES (?,?) ON CONFLICT(round) DO UPDATE SET speaker=excluded.speaker').run(round, speaker);
+}
+function getSpeaker(round) {
+  const r = db.prepare('SELECT speaker FROM round_speakers WHERE round = ?').get(round);
+  return r ? r.speaker : null;
+}
+function speakers() {
+  const m = {};
+  for (const r of db.prepare('SELECT round, speaker FROM round_speakers').all()) m[r.round] = r.speaker;
+  return m;
+}
 
 module.exports = {
   init, upsertPlayer, getPlayer, playerCount,
@@ -221,4 +239,5 @@ module.exports = {
   currentRound, newRound,
   addBuzzword, listBuzzwords, removeBuzzword,
   logWinner, winnersLog,
+  setSpeaker, getSpeaker, speakers,
 };

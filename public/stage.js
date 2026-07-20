@@ -12,8 +12,9 @@
 
   function render(s) {
     if (!s) return;
-    var sub = s.eventName || 'Play along from your seat';
-    if (s.round && s.round > 1) sub = 'Round ' + s.round + ' · ' + sub;
+    var sub;
+    if (s.speaker) sub = 'Round ' + (s.round || 1) + ' · ' + s.speaker;
+    else sub = (s.round && s.round > 1 ? 'Round ' + s.round + ' · ' : '') + (s.eventName || 'Play along from your seat');
     $('sub').textContent = sub;
     // QR / join link
     if (s.qr) { $('qr').src = s.qr; }
@@ -38,7 +39,10 @@
       hist.forEach(function (w) { (byRound[w.round] = byRound[w.round] || []).push(w); });
       Object.keys(byRound).map(Number).sort(function (a, b) { return a - b; }).forEach(function (rnd) {
         var row = document.createElement('div'); row.className = 'rrow';
-        var lbl = document.createElement('span'); lbl.className = 'rlbl'; lbl.textContent = 'Round ' + rnd; row.appendChild(lbl);
+        var speakers = s.speakers || {};
+        var lbl = document.createElement('span'); lbl.className = 'rlbl';
+        lbl.textContent = 'Round ' + rnd + (speakers[rnd] ? ' · ' + speakers[rnd] : '');
+        row.appendChild(lbl);
         byRound[rnd].forEach(function (w) {
           var chip = document.createElement('span'); chip.className = 'w'; chip.textContent = w.name;
           if (w.wonAt) chip.title = 'won at ' + new Date(w.wonAt).toLocaleTimeString();

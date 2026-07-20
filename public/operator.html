@@ -47,7 +47,13 @@
           <option value="blackout">Blackout (whole card)</option>
         </select>
       </label>
-      <button class="btn ghost" id="new-round">⏭ Next speaker — new round (fresh cards for everyone)</button>
+      <label class="fld" style="margin-top:10px"><span>Current speaker / topic (labels this round on the Stage)</span>
+        <div class="row">
+          <input id="speaker" type="text" placeholder="e.g. Ada Lovelace — Keynote" style="flex:2;min-width:160px" />
+          <button class="btn" id="speaker-save" style="flex:1;min-width:90px">Save</button>
+        </div>
+      </label>
+      <button class="btn ghost" id="new-round" style="margin-top:10px">⏭ Next speaker — new round (fresh cards for everyone)</button>
     </div>
 
     <div class="panel">

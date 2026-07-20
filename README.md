@@ -73,8 +73,10 @@ Each square carries a colored dot for its polarity (🟢 positive / 🔴 negativ
 Pick the winning pattern (applies to everyone live), watch the room's buzz, and
 **review each bingo claim** — you see the claimant's card, exactly which words
 they blotted, and the pattern they completed — then approve or reject. You can
-also **add buzzwords live** (positive / negative / name-drop) and hit **Next
-speaker** to deal everyone a fresh card from the updated pool.
+also **add buzzwords live** (positive / negative / name-drop), **label each round
+with the speaker/topic**, and hit **Next speaker** to deal everyone a fresh card
+from the updated pool. The Stage keeps a running **Winners by round** board
+(e.g. "Round 2 · Grace Hopper — Compilers → Ada L.").
 
 ![Operator console](docs/screenshots/operator.png)
 

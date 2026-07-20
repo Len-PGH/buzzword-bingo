@@ -291,6 +291,14 @@ app.post('/api/operator/buzzwords/remove', requireOperator, (req, res) => {
   res.json({ ok: true });
 });
 
+// Label the current round with the speaker/topic.
+app.post('/api/operator/speaker', requireOperator, (req, res) => {
+  const speaker = sanitizeText(req.body && req.body.speaker, 80);
+  db.setSpeaker(db.currentRound(), speaker);
+  broadcastOverview();
+  res.json({ ok: true, speaker });
+});
+
 // Next speaker → fresh game: everyone (winners included) gets a new card.
 app.post('/api/operator/round', requireOperator, (_req, res) => {
   const r = db.newRound();
@@ -326,6 +334,7 @@ function overview() {
     players: db.playerCount(),
     activePattern: activePattern(),
     round: db.currentRound(),
+    speaker: db.getSpeaker(db.currentRound()),
     sentiment: db.roomSentiment(),
     winners: db.winners(),
     pendingClaims: db.listClaims('pending').length,
@@ -341,6 +350,8 @@ function publicState() {
     activePattern: activePattern(),
     round: db.currentRound(),
     roundClosed: !roundOpen(),
+    speaker: db.getSpeaker(db.currentRound()),
+    speakers: db.speakers(),
     sentiment: db.roomSentiment(),
     winners: db.winners().map((w) => ({ name: w.name, wonAt: w.won_at })),
     history: db.winnersLog().map((w) => ({ round: w.round, name: w.name, wonAt: w.won_at })),
