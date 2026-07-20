@@ -12,7 +12,9 @@
 
   function render(s) {
     if (!s) return;
-    if (s.eventName) $('sub').textContent = s.eventName;
+    var sub = s.eventName || 'Play along from your seat';
+    if (s.round && s.round > 1) sub = 'Round ' + s.round + ' · ' + sub;
+    $('sub').textContent = sub;
     // QR / join link
     if (s.qr) { $('qr').src = s.qr; }
     $('url').textContent = (s.publicUrl || 'starting the tunnel…').replace(/^https?:\/\//, '');

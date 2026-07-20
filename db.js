@@ -54,7 +54,24 @@ function init(dir) {
       value TEXT
     );
   `);
+  // Migrations: a "round" ties a card to the current speaker/game.
+  ensureColumn('cards', 'round', 'INTEGER NOT NULL DEFAULT 1');
+  ensureColumn('game_state', 'round', 'INTEGER NOT NULL DEFAULT 1');
   return db;
+}
+
+function ensureColumn(table, col, decl) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
+}
+function currentRound() { return parseInt(db.prepare("SELECT value FROM meta WHERE key='round'").get()?.value || '1', 10); }
+// Start a fresh game for a new speaker: bump the round, wipe cards/marks/claims
+// (players keep their registration and get a new card on their next load).
+function newRound() {
+  const r = currentRound() + 1;
+  db.prepare(`INSERT INTO meta (key,value) VALUES ('round',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(String(r));
+  db.exec('DELETE FROM cards; DELETE FROM game_state; DELETE FROM claims;');
+  return r;
 }
 
 const now = () => Date.now();
@@ -75,20 +92,23 @@ function playerCount() {
 }
 
 // ---- cards ----------------------------------------------------------------
-function saveCard(uuid, card) {
+// Persist a freshly drawn card for a given round, and (re)start its game state.
+function saveCard(uuid, card, round) {
+  round = round || currentRound();
   db.prepare(`
-    INSERT INTO cards (uuid, layout_json, positive_pct, negative_pct, locked, created_at)
-    VALUES (@uuid, @layout, @pos, @neg, 1, @created_at)
-    ON CONFLICT(uuid) DO NOTHING
-  `).run({ uuid, layout: JSON.stringify(card), pos: card.positivePct, neg: card.negativePct, created_at: now() });
-  // Ensure a game_state row exists.
-  db.prepare(`INSERT INTO game_state (uuid, marked_json, updated_at)
-              VALUES (?, '[]', ?) ON CONFLICT(uuid) DO NOTHING`).run(uuid, now());
+    INSERT INTO cards (uuid, layout_json, positive_pct, negative_pct, locked, round, created_at)
+    VALUES (@uuid, @layout, @pos, @neg, 1, @round, @created_at)
+    ON CONFLICT(uuid) DO UPDATE SET layout_json=@layout, positive_pct=@pos, negative_pct=@neg, round=@round, created_at=@created_at
+  `).run({ uuid, layout: JSON.stringify(card), pos: card.positivePct, neg: card.negativePct, round, created_at: now() });
+  db.prepare(`INSERT INTO game_state (uuid, marked_json, won_at, round, updated_at)
+              VALUES (?, '[]', NULL, ?, ?)
+              ON CONFLICT(uuid) DO UPDATE SET marked_json='[]', won_at=NULL, round=?, updated_at=?`)
+    .run(uuid, round, now(), round, now());
 }
 function getCard(uuid) {
   const row = db.prepare('SELECT * FROM cards WHERE uuid = ?').get(uuid);
   if (!row) return null;
-  return { ...JSON.parse(row.layout_json), positivePct: row.positive_pct, negativePct: row.negative_pct, locked: !!row.locked };
+  return { ...JSON.parse(row.layout_json), positivePct: row.positive_pct, negativePct: row.negative_pct, locked: !!row.locked, round: row.round };
 }
 
 // ---- game state -----------------------------------------------------------
@@ -170,4 +190,5 @@ module.exports = {
   saveCard, getCard, getState, setMarked, setWon,
   createClaim, getClaim, listClaims, reviewClaim,
   getMeta, setMeta, roomSentiment, winners,
+  currentRound, newRound,
 };

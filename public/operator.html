@@ -22,7 +22,7 @@
 
   <!-- console -->
   <div class="wrap wide" id="app" style="display:none">
-    <div class="brand"><div class="logo">Buzzword Bingo</div><div class="sub"><span class="pill">operator</span></div></div>
+    <div class="brand"><div class="logo">Buzzword Bingo</div><div class="sub"><span class="pill">operator</span> <span class="pill" id="round-pill">Round 1</span></div></div>
 
     <div class="panel">
       <div class="row">
@@ -47,6 +47,7 @@
           <option value="blackout">Blackout (whole card)</option>
         </select>
       </label>
+      <button class="btn ghost" id="new-round">⏭ Next speaker — new round (fresh cards for everyone)</button>
     </div>
 
     <div class="panel qrbox">

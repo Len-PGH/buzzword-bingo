@@ -60,6 +60,21 @@ function keyOk(given) {
 }
 function activePattern() { return db.getMeta('activePattern', 'any_line'); }
 
+// The registered player's card for the CURRENT round — regenerated fresh (new
+// seed) whenever the operator advances to a new speaker, so winners play again.
+function cardFor(uuid) {
+  const player = db.getPlayer(uuid);
+  if (!player) return null;
+  const round = db.currentRound();
+  let card = db.getCard(uuid);
+  if (!card || card.round !== round) {
+    card = bingo.generateCard(uuid + ':r' + round);
+    db.saveCard(uuid, card, round);
+    card = db.getCard(uuid);
+  }
+  return card;
+}
+
 async function regenQr() {
   if (!publicUrl) { qrDataUrl = ''; return; }
   try { qrDataUrl = await QRCode.toDataURL(publicUrl.replace(/\/+$/, '') + '/', { margin: 1, width: 512 }); }
@@ -125,7 +140,7 @@ app.use(express.static(PUBLIC_DIR, { index: false }));
 // Everything the player app needs on load — drives reload persistence.
 app.get('/api/me', (req, res) => {
   const player = db.getPlayer(req.uuid);
-  const card = db.getCard(req.uuid);
+  const card = cardFor(req.uuid);
   const state = db.getState(req.uuid);
   const pattern = activePattern();
   res.json({
@@ -153,11 +168,7 @@ app.post('/api/register', (req, res) => {
   if (phone && !/^[0-9+()\-.\s]{5,30}$/.test(phone)) return res.status(400).json({ ok: false, error: 'That phone number looks off.' });
 
   db.upsertPlayer({ uuid: req.uuid, name, email, phone });
-  let card = db.getCard(req.uuid);
-  if (!card) {
-    card = bingo.generateCard(req.uuid);
-    db.saveCard(req.uuid, card);
-  }
+  const card = cardFor(req.uuid);
   const state = db.getState(req.uuid);
   broadcastOverview();
   res.json({ ok: true, name, card, marked: state.marked, wonAt: state.wonAt, pattern: activePattern() });
@@ -165,7 +176,7 @@ app.post('/api/register', (req, res) => {
 
 const markLimiter = new Map(); // uuid -> last mark ts (light rate limit)
 app.post('/api/mark', (req, res) => {
-  const card = db.getCard(req.uuid);
+  const card = cardFor(req.uuid);
   if (!card) return res.status(400).json({ ok: false, error: 'Draw a card first.' });
   const idx = Number(req.body && req.body.index);
   const on = !!(req.body && req.body.on);
@@ -190,7 +201,7 @@ app.post('/api/mark', (req, res) => {
 // Claim BINGO. Server re-validates the active pattern (never trusts the client),
 // then queues the claim for operator review.
 app.post('/api/claim', (req, res) => {
-  const card = db.getCard(req.uuid);
+  const card = cardFor(req.uuid);
   if (!card) return res.status(400).json({ ok: false, error: 'Draw a card first.' });
   const pattern = activePattern();
   const evalr = bingo.evaluate(card, db.getState(req.uuid).marked, pattern);
@@ -237,6 +248,13 @@ app.post('/api/operator/review', requireOperator, (req, res) => {
   broadcastOverview();
   res.json({ ok: true });
 });
+// Next speaker → fresh game: everyone (winners included) gets a new card.
+app.post('/api/operator/round', requireOperator, (_req, res) => {
+  const r = db.newRound();
+  io.emit('round', { round: r });   // players refetch and get a fresh card
+  broadcastOverview();
+  res.json({ ok: true, round: r });
+});
 app.post('/api/operator/pattern', requireOperator, (req, res) => {
   const p = req.body && req.body.pattern;
   if (!bingo.TARGETS.includes(p)) return res.status(400).json({ ok: false, error: 'bad pattern' });
@@ -264,6 +282,7 @@ function overview() {
     eventName: db.getMeta('eventName'),
     players: db.playerCount(),
     activePattern: activePattern(),
+    round: db.currentRound(),
     sentiment: db.roomSentiment(),
     winners: db.winners(),
     pendingClaims: db.listClaims('pending').length,
@@ -277,6 +296,7 @@ function publicState() {
     eventName: db.getMeta('eventName'),
     players: db.playerCount(),
     activePattern: activePattern(),
+    round: db.currentRound(),
     sentiment: db.roomSentiment(),
     winners: db.winners().map((w) => ({ name: w.name, wonAt: w.won_at })),
     publicUrl,

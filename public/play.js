@@ -105,11 +105,11 @@
     });
   });
 
-  function flashStatus(msg) {
+  function flashStatus(msg, kind) {
     var s = $('status'); s.innerHTML = '';
-    var b = document.createElement('div'); b.className = 'banner lost'; b.textContent = msg;
+    var b = document.createElement('div'); b.className = 'banner ' + (kind || 'lost'); b.textContent = msg;
     s.appendChild(b);
-    setTimeout(function () { if (!won && !claimPending) s.innerHTML = ''; }, 2500);
+    setTimeout(function () { if (!won && !claimPending) s.innerHTML = ''; }, 3000);
   }
 
   $('draw').addEventListener('click', function () {
@@ -149,6 +149,18 @@
   socket.on('pattern', function (msg) {
     pattern = msg.pattern; renderTarget();
     api('/api/me').then(function (r) { setBingoEnabled(r.j.complete); });
+  });
+  // New speaker → everyone gets a fresh card; refetch and reset.
+  socket.on('round', function () {
+    if (!card) return; // still on the registration screen
+    won = false; claimPending = false; marked = new Set();
+    api('/api/me').then(function (r) {
+      var d = r.j;
+      card = d.card; marked = new Set(d.marked || []); pattern = d.pattern || 'any_line'; won = !!d.wonAt;
+      $('status').innerHTML = '';
+      renderTarget(); renderGrid(); renderMeter(d.sentiment); setBingoEnabled(d.complete);
+      flashStatus("🆕 New round — here's your fresh card!", 'pending');
+    });
   });
 
   // ---- boot: reload-safe ----

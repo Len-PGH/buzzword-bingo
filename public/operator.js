@@ -41,6 +41,7 @@
     $('m-p').style.width = s.positivePct + '%'; $('m-n').style.width = s.negativePct + '%';
     $('m-pp').textContent = s.positivePct + '%'; $('m-np').textContent = s.negativePct + '%';
     if (o.activePattern && $('pattern').value !== o.activePattern) $('pattern').value = o.activePattern;
+    if ($('round-pill')) $('round-pill').textContent = 'Round ' + (o.round || 1);
     // QR / join link
     if (o.qr) { $('qr').src = o.qr; $('qr').style.display = ''; }
     $('url').textContent = o.publicUrl || 'no public URL yet (run behind the tunnel to get one)';
@@ -96,6 +97,10 @@
 
   $('pattern').addEventListener('change', function () {
     op('/api/operator/pattern', { pattern: this.value });
+  });
+  $('new-round').addEventListener('click', function () {
+    if (!window.confirm('Start a new round for the next speaker? Everyone gets a fresh card and the board clears.')) return;
+    op('/api/operator/round', {}).then(function () { refreshClaims(); });
   });
 
   // ---- realtime ----
