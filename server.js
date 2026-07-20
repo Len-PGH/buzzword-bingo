@@ -168,6 +168,8 @@ app.get('/api/me', (req, res) => {
     complete: card ? bingo.evaluate(card, state.marked, pattern).complete : false,
     sentiment: card ? bingo.sentiment(card, state.marked) : null,
     eventName: db.getMeta('eventName'),
+    round: db.currentRound(),
+    speaker: db.getSpeaker(db.currentRound()),
     roundClosed: !roundOpen(),
   });
 });

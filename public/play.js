@@ -39,6 +39,15 @@
     $('target').appendChild(b);
   }
 
+  function renderRoundInfo(round, speaker) {
+    var el = $('roundinfo');
+    if (!el) return;
+    el.innerHTML = '';
+    var r = document.createElement('b'); r.textContent = 'Round ' + (round || 1);
+    el.appendChild(r);
+    if (speaker) el.appendChild(document.createTextNode(' · ' + speaker));
+  }
+
   function renderGrid() {
     var g = $('grid');
     g.innerHTML = '';
@@ -142,6 +151,7 @@
     $('game').style.display = '';
     if (data.name) $('whoami').textContent = 'Playing as ' + data.name + '.';
     renderTarget();
+    renderRoundInfo(data.round, data.speaker);
     renderGrid();
     // /api/me is authoritative for sentiment, win, and round-closed state.
     api('/api/me').then(function (r) {
@@ -149,6 +159,7 @@
       won = !!d.wonAt; roundClosed = !!d.roundClosed;
       wonTime = d.wonAt ? fmtTime(d.wonAt) : '';
       marked = new Set(d.marked || []);
+      renderRoundInfo(d.round, d.speaker);
       renderGrid();
       renderMeter(d.sentiment);
       setBingoEnabled(d.complete);
@@ -185,9 +196,17 @@
       card = d.card; marked = new Set(d.marked || []); pattern = d.pattern || 'any_line'; won = !!d.wonAt;
       roundClosed = !!d.roundClosed;
       $('status').innerHTML = '';
+      renderRoundInfo(d.round, d.speaker);
       renderTarget(); renderGrid(); renderMeter(d.sentiment); setBingoEnabled(d.complete);
       flashStatus("🆕 New round — here's your fresh card!", 'pending');
     });
+  });
+
+  // Keep round/speaker live (e.g. operator edits the speaker mid-round).
+  socket.on('public', function (msg) {
+    if (!card || !msg) return;
+    renderRoundInfo(msg.round, msg.speaker);
+    if (msg.eventName) $('event-sub').textContent = msg.eventName;
   });
 
   // ---- boot: reload-safe ----
