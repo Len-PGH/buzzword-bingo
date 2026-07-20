@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Buzzword Bingo — Operator</title>
+<link rel="stylesheet" href="/app.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- key gate -->
+  <div class="wrap gate" id="gate">
+    <div class="brand"><div class="logo">Buzzword Bingo</div><div class="sub">Operator console</div></div>
+    <div class="panel">
+      <label class="fld"><span>Operator key</span><input id="key" type="text" placeholder="paste the operator key" /></label>
+      <button class="btn" id="key-go">Unlock</button>
+      <div class="err" id="gate-err"></div>
+    </div>
+  </div>
+
+  <!-- console -->
+  <div class="wrap wide" id="app" style="display:none">
+    <div class="brand"><div class="logo">Buzzword Bingo</div><div class="sub"><span class="pill">operator</span></div></div>
+
+    <div class="panel">
+      <div class="row">
+        <div class="stat"><div class="n" id="s-players">0</div><div class="k">Players</div></div>
+        <div class="stat"><div class="n" id="s-claims">0</div><div class="k">Pending claims</div></div>
+        <div class="stat"><div class="n" id="s-winners">0</div><div class="k">Winners</div></div>
+      </div>
+      <div style="margin-top:16px">
+        <span class="k" style="color:var(--muted)">The room's buzz</span>
+        <div class="meter" style="margin-top:6px">
+          <div class="bar"><div class="p" id="m-p" style="width:0%"></div><div class="n" id="m-n" style="width:0%"></div></div>
+          <div class="lbl"><span><b class="p">positive</b> <span id="m-pp">0%</span></span><span id="m-np">0%</span><span><b class="n">negative</b></span></div>
+        </div>
+      </div>
+      <label class="fld" style="margin-top:8px"><span>Winning pattern (applies to everyone live)</span>
+        <select id="pattern">
+          <option value="any_line">Any line — row / column / diagonal</option>
+          <option value="four_corners">Four corners</option>
+          <option value="x">X</option>
+          <option value="plus">Plus (+)</option>
+          <option value="frame">Full frame (outer edge)</option>
+          <option value="blackout">Blackout (whole card)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="panel qrbox">
+      <div class="k" style="color:var(--muted)">Players join here</div>
+      <img id="qr" alt="join QR" style="display:none" />
+      <div class="url" id="url">no public URL yet</div>
+    </div>
+
+    <div class="panel">
+      <h1 style="font-size:20px">Bingo claims to review</h1>
+      <p class="muted" id="no-claims" style="margin:8px 0 0">No claims yet — they'll pop up here the moment someone calls bingo.</p>
+      <div id="claims"></div>
+    </div>
+
+    <div class="panel">
+      <h1 style="font-size:20px">Winners</h1>
+      <ul class="winlist" id="winners"></ul>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/operator.js"></script>
+</body>
+</html>

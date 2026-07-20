@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Buzzword Bingo</title>
+<link rel="stylesheet" href="/app.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">Buzzword Bingo</div>
+      <div class="sub" id="event-sub">Blot the buzzwords as the speaker says them</div>
+    </div>
+
+    <!-- Registration -->
+    <div class="panel" id="register">
+      <p class="muted" style="margin-top:0">Enter your details and we'll shuffle you a card and lock it in. Your card stays with you — even if you refresh.</p>
+      <label class="fld"><span>Your name</span><input id="f-name" type="text" placeholder="Ada L." autocomplete="name" /></label>
+      <label class="fld"><span>Email <em class="muted">(for the prize — kept private)</em></span><input id="f-email" type="email" placeholder="you@example.com" autocomplete="email" /></label>
+      <label class="fld"><span>Phone number <em class="muted">(kept private)</em></span><input id="f-phone" type="tel" placeholder="+1 555 123 4567" autocomplete="tel" /></label>
+      <button class="btn big" id="draw">🎲 Shuffle &amp; lock my card</button>
+      <div class="err" id="reg-err"></div>
+    </div>
+
+    <!-- Game -->
+    <div class="panel" id="game" style="display:none">
+      <div class="target" id="target">Target: <b>—</b></div>
+      <div class="meter">
+        <div class="bar"><div class="p" id="meter-p" style="width:0%"></div><div class="n" id="meter-n" style="width:0%"></div></div>
+        <div class="lbl"><span><b class="p">positive buzz</b> <span id="pct-p">0%</span></span><span id="pct-n">0%</span> <span><b class="n">negative</b></span></div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <button class="btn big win" id="bingo" style="margin-top:16px" disabled>Call BINGO!</button>
+      <div id="status"></div>
+      <p class="muted center" style="font-size:12px;margin-top:14px">Tap a square when you hear it. <span id="whoami"></span></p>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/play.js"></script>
+</body>
+</html>

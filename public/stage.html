@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Buzzword Bingo — Stage</title>
+<link rel="stylesheet" href="/app.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html,body { height:100%; overflow:hidden; }
+  .stage { height:100vh; display:grid; grid-template-rows:auto 1fr auto; gap:clamp(12px,2vw,28px); padding:clamp(16px,2.4vw,40px); }
+  .st-head { text-align:center; }
+  .st-head .logo { font-size:clamp(34px,6vw,72px); font-weight:800;
+    background:linear-gradient(100deg,var(--pos),var(--name) 55%,var(--neg)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .st-head .sub { color:var(--muted); font-size:clamp(14px,1.6vw,22px); }
+  .st-main { display:grid; grid-template-columns:minmax(280px,38%) 1fr; gap:clamp(16px,2.4vw,40px); align-items:center; min-height:0; }
+  .join { text-align:center; background:var(--panel); border:1px solid var(--line); border-radius:24px; padding:clamp(16px,2vw,32px); box-shadow:var(--elev); }
+  .join .k { text-transform:uppercase; letter-spacing:.2em; color:var(--muted); font-size:clamp(12px,1.2vw,16px); }
+  .join img { width:min(46vh,90%); aspect-ratio:1/1; background:#fff; padding:14px; border-radius:20px; margin:12px 0; }
+  .join .url { font-family:var(--mono); color:var(--txt); font-size:clamp(12px,1.1vw,17px); word-break:break-all; }
+  .join .cta { margin-top:10px; font-weight:800; font-size:clamp(20px,2.4vw,34px); color:var(--free); }
+  .right { display:grid; gap:clamp(14px,2vw,26px); min-height:0; }
+  .buzz .k { display:flex; justify-content:space-between; align-items:baseline; }
+  .buzz .k b { font-size:clamp(20px,2.6vw,40px); font-weight:800; }
+  .buzz .k b.p { color:var(--pos); } .buzz .k b.n { color:var(--neg); }
+  .buzz .bar { height:clamp(22px,3vw,44px); border-radius:999px; overflow:hidden; display:flex; background:var(--bg2); border:1px solid var(--line); margin-top:8px; }
+  .buzz .bar .p { background:var(--pos); transition:width .5s ease; } .buzz .bar .n { background:var(--neg); transition:width .5s ease; }
+  .metrics { display:flex; gap:clamp(12px,1.6vw,24px); }
+  .metric { flex:1; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:clamp(12px,1.6vw,22px); text-align:center; }
+  .metric .n { font-size:clamp(28px,4vw,64px); font-weight:800; }
+  .metric .k { color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:clamp(11px,1.1vw,15px); }
+  .winners { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:clamp(12px,1.6vw,22px); min-height:0; overflow:hidden; }
+  .winners h2 { margin:0 0 8px; font-size:clamp(16px,1.8vw,26px); }
+  .winners .list { display:flex; flex-wrap:wrap; gap:10px; }
+  .winners .w { background:linear-gradient(100deg,rgba(34,197,94,.2),rgba(34,201,163,.12)); border:1px solid rgba(34,197,94,.5);
+    color:#86efac; border-radius:999px; padding:8px 16px; font-weight:700; font-size:clamp(14px,1.5vw,22px); }
+  .winners .none { color:var(--muted); }
+  .st-foot { text-align:center; color:var(--muted); font-family:var(--mono); font-size:clamp(11px,1.1vw,15px); }
+  .st-foot b { color:var(--txt); }
+  /* winner celebration flash */
+  .flash { position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:10;
+    background:radial-gradient(circle at 50% 45%, rgba(34,197,94,.28), rgba(13,16,32,.9)); text-align:center; }
+  .flash.show { display:flex; animation:pop .4s ease; }
+  .flash .big { font-size:clamp(40px,9vw,120px); font-weight:800; color:#86efac; }
+  .flash .who { font-size:clamp(24px,4vw,56px); color:#fff; margin-top:8px; }
+  @keyframes pop { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="st-head">
+      <div class="logo">Buzzword Bingo</div>
+      <div class="sub" id="sub">Play along from your seat</div>
+    </div>
+
+    <div class="st-main">
+      <div class="join">
+        <div class="k">Scan to play</div>
+        <img id="qr" alt="join QR" />
+        <div class="url" id="url">—</div>
+        <div class="cta">Blot the buzzwords!</div>
+      </div>
+
+      <div class="right">
+        <div class="buzz">
+          <div class="k"><span><b class="p" id="pp">0%</b> <span class="muted">positive buzz</span></span>
+                         <span><span class="muted">negative</span> <b class="n" id="np">0%</b></span></div>
+          <div class="bar"><div class="p" id="bp" style="width:0%"></div><div class="n" id="bn" style="width:0%"></div></div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="n" id="m-players">0</div><div class="k">Players</div></div>
+          <div class="metric"><div class="n" id="m-winners">0</div><div class="k">Winners</div></div>
+          <div class="metric"><div class="n" id="m-pattern" style="font-size:clamp(16px,2vw,30px)">Any line</div><div class="k">Winning pattern</div></div>
+        </div>
+        <div class="winners">
+          <h2>🏆 Winners</h2>
+          <div class="list" id="winlist"><span class="none">First bingo puts a name up here…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="st-foot">Positive buzz is good engineering &amp; responsible AI · negative is hype · <b>ClueCon</b> is your free space</div>
+  </div>
+
+  <div class="flash" id="flash"><div><div class="big">BINGO!</div><div class="who" id="flash-who"></div></div></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/stage.js"></script>
+</body>
+</html>

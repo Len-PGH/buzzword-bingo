@@ -1,0 +1,19 @@
+{
+  "name": "buzzword-bingo",
+  "version": "1.0.0",
+  "description": "Buzzword Bingo — live audience bingo for talks. Scan a QR, draw a locked card, blot buzzwords as the speaker says them, win a prize.",
+  "main": "server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1"
+  }
+}
