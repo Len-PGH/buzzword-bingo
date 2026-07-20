@@ -4,6 +4,7 @@
   var socket = io({ transports: ['websocket', 'polling'] });
   var KEY = '';
   try { KEY = localStorage.getItem('bb_opkey') || ''; } catch (e) {}
+  function fmtTime(ms) { try { return new Date(ms).toLocaleTimeString(); } catch (e) { return ''; } }
 
   function op(path, body) {
     return fetch(path, {
@@ -42,7 +43,7 @@
     $('m-p').style.width = s.positivePct + '%'; $('m-n').style.width = s.negativePct + '%';
     $('m-pp').textContent = s.positivePct + '%'; $('m-np').textContent = s.negativePct + '%';
     if (o.activePattern && $('pattern').value !== o.activePattern) $('pattern').value = o.activePattern;
-    if ($('round-pill')) $('round-pill').textContent = 'Round ' + (o.round || 1);
+    if ($('round-pill')) $('round-pill').textContent = 'Round ' + (o.round || 1) + (o.roundClosed ? ' · OVER — start next round' : '');
     // QR / join link
     if (o.qr) { $('qr').src = o.qr; $('qr').style.display = ''; }
     $('url').textContent = o.publicUrl || 'no public URL yet (run behind the tunnel to get one)';
@@ -63,11 +64,14 @@
     var claims = (data && data.claims) || [];
     $('no-claims').style.display = claims.length ? 'none' : '';
     var host = $('claims'); host.innerHTML = '';
-    claims.forEach(function (c) {
+    claims.forEach(function (c, idx) {
       var el = document.createElement('div'); el.className = 'claim';
-      var h = document.createElement('h3'); h.textContent = c.name; el.appendChild(h);
+      var h = document.createElement('h3');
+      h.textContent = '#' + (idx + 1) + '  ' + c.name;   // ordered by who called first
+      el.appendChild(h);
       var meta = document.createElement('div'); meta.className = 'muted'; meta.style.fontSize = '13px';
-      meta.textContent = 'Claimed: ' + (c.completed && c.completed.length ? c.completed.join(', ') : c.pattern);
+      meta.textContent = 'Called ' + fmtTime(c.claimedAt) + ' · ' +
+        (c.completed && c.completed.length ? c.completed.join(', ') : c.pattern);
       el.appendChild(meta);
       // mini card
       var mg = document.createElement('div'); mg.className = 'minigrid';

@@ -60,6 +60,10 @@ function keyOk(given) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 function activePattern() { return db.getMeta('activePattern', 'any_line'); }
+// A round stays open until a winner is declared; then it's over for that speaker
+// until the operator starts the next round. (Winners exist only for this round —
+// newRound() clears game_state.)
+function roundOpen() { return db.winners().length === 0; }
 
 // Base word pools + any buzzwords the operator has added live.
 function mergedPools() {
@@ -164,6 +168,7 @@ app.get('/api/me', (req, res) => {
     complete: card ? bingo.evaluate(card, state.marked, pattern).complete : false,
     sentiment: card ? bingo.sentiment(card, state.marked) : null,
     eventName: db.getMeta('eventName'),
+    roundClosed: !roundOpen(),
   });
 });
 
@@ -189,6 +194,7 @@ const markLimiter = new Map(); // uuid -> last mark ts (light rate limit)
 app.post('/api/mark', (req, res) => {
   const card = cardFor(req.uuid);
   if (!card) return res.status(400).json({ ok: false, error: 'Draw a card first.' });
+  if (!roundOpen()) return res.status(409).json({ ok: false, error: 'This round is over — a winner was declared.' });
   const idx = Number(req.body && req.body.index);
   const on = !!(req.body && req.body.on);
   if (!Number.isInteger(idx) || idx < 0 || idx >= card.cells.length) return res.status(400).json({ ok: false, error: 'bad cell' });
@@ -214,6 +220,7 @@ app.post('/api/mark', (req, res) => {
 app.post('/api/claim', (req, res) => {
   const card = cardFor(req.uuid);
   if (!card) return res.status(400).json({ ok: false, error: 'Draw a card first.' });
+  if (!roundOpen()) return res.status(409).json({ ok: false, error: 'This round is over — a winner was declared.' });
   const pattern = activePattern();
   const evalr = bingo.evaluate(card, db.getState(req.uuid).marked, pattern);
   if (!evalr.complete) return res.status(400).json({ ok: false, error: 'No bingo yet — keep blotting!' });
@@ -249,9 +256,14 @@ app.post('/api/operator/review', requireOperator, (req, res) => {
   const claim = db.getClaim(id);
   if (!claim) return res.status(404).json({ ok: false, error: 'no such claim' });
   if (decision === 'approve') {
+    const wonAt = Date.now();
     db.reviewClaim(id, 'approved');
-    db.setWon(claim.uuid, Date.now());
-    io.to('player:' + claim.uuid).emit('result', { approved: true, pattern: claim.pattern });
+    db.setWon(claim.uuid, wonAt);
+    const player = db.getPlayer(claim.uuid);
+    const name = player ? player.name : 'A player';
+    io.to('player:' + claim.uuid).emit('result', { approved: true, pattern: claim.pattern, wonAt: wonAt });
+    // The round is now over for this speaker — tell everyone and lock their boards.
+    io.emit('roundover', { winner: name, at: wonAt, pattern: claim.pattern });
   } else {
     db.reviewClaim(id, 'rejected');
     io.to('player:' + claim.uuid).emit('result', { approved: false });
@@ -327,6 +339,7 @@ function publicState() {
     players: db.playerCount(),
     activePattern: activePattern(),
     round: db.currentRound(),
+    roundClosed: !roundOpen(),
     sentiment: db.roomSentiment(),
     winners: db.winners().map((w) => ({ name: w.name, wonAt: w.won_at })),
     publicUrl,

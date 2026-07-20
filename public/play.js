@@ -17,6 +17,11 @@
   var pattern = 'any_line';
   var claimPending = false;
   var won = false;
+  var roundClosed = false;   // a winner was declared — round over for this speaker
+  var roundWinner = null;
+  var wonTime = '';
+
+  function fmtTime(ms) { try { return new Date(ms).toLocaleTimeString(); } catch (e) { return ''; } }
 
   function api(path, body) {
     return fetch(path, {
@@ -43,7 +48,7 @@
       el.type = 'button';
       if (!cell.free) { var dot = document.createElement('span'); dot.className = 'pol'; el.appendChild(dot); }
       var span = document.createElement('span'); span.textContent = cell.word; el.appendChild(span);
-      if (!cell.free && !won) el.addEventListener('click', function () { toggle(i); });
+      if (!cell.free && !won && !roundClosed) el.addEventListener('click', function () { toggle(i); });
       g.appendChild(el);
     });
   }
@@ -58,7 +63,8 @@
 
   function setBingoEnabled(complete) {
     var btn = $('bingo');
-    if (won) { btn.style.display = 'none'; return; }
+    if (won || roundClosed) { btn.style.display = 'none'; return; }
+    btn.style.display = '';
     if (claimPending) { btn.disabled = true; btn.textContent = 'Sent to the judges…'; return; }
     btn.disabled = !complete;
     btn.textContent = complete ? '🎉 Call BINGO!' : 'Fill the pattern to call bingo';
@@ -69,8 +75,12 @@
     s.innerHTML = '';
     if (won) {
       var w = document.createElement('div'); w.className = 'banner won';
-      w.textContent = '🏆 BINGO! You won — see the organizers for your prize!';
+      w.textContent = '🏆 BINGO! You won' + (wonTime ? ' at ' + wonTime : '') + ' — see the organizers for your prize!';
       s.appendChild(w);
+    } else if (roundClosed) {
+      var r = document.createElement('div'); r.className = 'banner lost';
+      r.textContent = '🏁 Round over' + (roundWinner ? ' — ' + roundWinner + ' won!' : '') + ' Sit tight — a fresh card comes with the next speaker.';
+      s.appendChild(r);
     } else if (claimPending) {
       var p = document.createElement('div'); p.className = 'banner pending';
       p.textContent = '⏳ Bingo sent! Waiting for an organizer to confirm your card…';
@@ -80,7 +90,7 @@
 
   // ---- actions ----
   function toggle(i) {
-    if (won || claimPending) return;
+    if (won || claimPending || roundClosed) return;
     var on = !marked.has(i);
     if (on) marked.add(i); else marked.delete(i);
     renderGrid();
@@ -133,18 +143,34 @@
     if (data.name) $('whoami').textContent = 'Playing as ' + data.name + '.';
     renderTarget();
     renderGrid();
-    // ask server for a fresh sentiment + complete state
+    // /api/me is authoritative for sentiment, win, and round-closed state.
     api('/api/me').then(function (r) {
-      renderMeter(r.j.sentiment);
-      setBingoEnabled(r.j.complete);
+      var d = r.j;
+      won = !!d.wonAt; roundClosed = !!d.roundClosed;
+      wonTime = d.wonAt ? fmtTime(d.wonAt) : '';
+      marked = new Set(d.marked || []);
+      renderGrid();
+      renderMeter(d.sentiment);
+      setBingoEnabled(d.complete);
       showStatus();
     });
   }
 
   // ---- realtime ----
   socket.on('result', function (msg) {
-    if (msg.approved) { won = true; claimPending = false; renderGrid(); setBingoEnabled(false); showStatus(); }
-    else { claimPending = false; setBingoEnabled(true); flashStatus('Not confirmed — keep an eye on the talk and try again.'); }
+    if (msg.approved) {
+      won = true; roundClosed = true; claimPending = false;
+      wonTime = msg.wonAt ? fmtTime(msg.wonAt) : '';
+      renderGrid(); setBingoEnabled(false); showStatus();
+    } else {
+      claimPending = false; setBingoEnabled(true); flashStatus('Not confirmed — keep an eye on the talk and try again.');
+    }
+  });
+  // Someone won — the round is over for this speaker. Lock everyone's board.
+  socket.on('roundover', function (msg) {
+    if (!card) return;
+    roundClosed = true; roundWinner = (msg && msg.winner) || null;
+    renderGrid(); setBingoEnabled(false); showStatus();
   });
   socket.on('pattern', function (msg) {
     pattern = msg.pattern; renderTarget();
@@ -153,10 +179,11 @@
   // New speaker → everyone gets a fresh card; refetch and reset.
   socket.on('round', function () {
     if (!card) return; // still on the registration screen
-    won = false; claimPending = false; marked = new Set();
+    won = false; claimPending = false; roundClosed = false; roundWinner = null; wonTime = ''; marked = new Set();
     api('/api/me').then(function (r) {
       var d = r.j;
       card = d.card; marked = new Set(d.marked || []); pattern = d.pattern || 'any_line'; won = !!d.wonAt;
+      roundClosed = !!d.roundClosed;
       $('status').innerHTML = '';
       renderTarget(); renderGrid(); renderMeter(d.sentiment); setBingoEnabled(d.complete);
       flashStatus("🆕 New round — here's your fresh card!", 'pending');
