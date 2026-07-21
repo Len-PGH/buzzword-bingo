@@ -21,13 +21,18 @@ echo "==> Building $IMAGE…"
 docker build -t "$IMAGE" .
 docker rm -f "$NAME" >/dev/null 2>&1 || true
 
-echo "==> Starting:"
-echo "    Play      http://localhost:${PORT}/"
-echo "    Operator  http://localhost:${PORT}/operator   (key in .env)"
-echo
+# Detached + auto-restart so it comes back after a host reboot / crash.
 # Named volume keeps the SQLite DB across restarts.
-exec docker run --rm --name "$NAME" \
+docker run -d --restart unless-stopped --name "$NAME" \
   --env-file .env \
   -p "${PORT}:${PORT}" \
   -v buzzword-bingo-data:/data \
-  "$IMAGE"
+  "$IMAGE" >/dev/null
+
+echo "==> Started (auto-restarts on boot):"
+echo "    Play      http://localhost:${PORT}/"
+echo "    Operator  http://localhost:${PORT}/operator   (key in .env)"
+echo "    Logs      docker logs -f ${NAME}"
+sleep 16
+URL="$(docker logs "$NAME" 2>&1 | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | head -1)"
+[ -n "$URL" ] && echo "    Public    ${URL}"
